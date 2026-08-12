@@ -17,7 +17,7 @@ services:
       RBOT_PORT: "9527"
       TZ: ${TZ:-Asia/Singapore}
     ports:
-      - "${RBOT_BIND_ADDRESS:-127.0.0.1}:${RBOT_HOST_PORT:-9527}:9527"
+      - "${RBOT_BIND_ADDRESS:-0.0.0.0}:${RBOT_HOST_PORT:-9527}:9527"
     volumes:
       - rbot-data:/var/lib/rbot
       - ./config:/config:ro
