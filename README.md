@@ -1,5 +1,7 @@
 # java_oci_manager
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/mrshyi/java_oci_manager/actions/workflows/ci.yml/badge.svg)](https://github.com/mrshyi/java_oci_manager/actions/workflows/ci.yml)
 [![Publish image](https://github.com/mrshyi/java_oci_manager/actions/workflows/publish.yml/badge.svg)](https://github.com/mrshyi/java_oci_manager/actions/workflows/publish.yml)
 
@@ -9,6 +11,24 @@ R-Bot client distributed by `semicons/java_oci_manage`.
 The application version and official SHA-256 checksums are pinned at build
 time. The application binary runs in the foreground as the container's managed
 process; the upstream background-service script is intentionally not used.
+
+## Quick deployment
+
+Requires Docker Engine with Compose v2. Run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/scripts/install.sh | sh
+```
+
+When deployment finishes, open:
+
+```text
+https://127.0.0.1:9527
+```
+
+A self-signed certificate warning on first access is expected. If Docker runs
+on a remote server, first create an SSH tunnel with
+`ssh -L 9527:127.0.0.1:9527 USER@SERVER_IP`, then open the same address locally.
 
 ## Security model
 
@@ -81,7 +101,7 @@ version tag, so it cannot roll `latest` backward. When Docker Hub publishing is
 enabled later, the workflow also backfills a version that already exists in
 GHCR.
 
-## Build and start
+## Build locally and start
 
 Requirements: Docker Engine with the Compose v2 plugin.
 
