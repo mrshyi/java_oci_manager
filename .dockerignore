@@ -1,0 +1,12 @@
+**/.git
+**/.gitignore
+.env
+config
+secrets
+data
+*.pem
+*.key
+client_config
+README.md
+compose.yaml
+

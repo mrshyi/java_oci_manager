@@ -1,0 +1,43 @@
+name: java-oci-manage
+
+services:
+  rbot:
+    image: ${RBOT_IMAGE:-local/java-oci-manage:10.5.0}
+    build:
+      context: .
+      args:
+        RBOT_VERSION: ${RBOT_VERSION:-10.5.0}
+        RBOT_SHA256_AMD64: ${RBOT_SHA256_AMD64:-7b7a99cdf25f73c5d07335a37da326014e52910b55e4501e997e9cade4d41bf2}
+        RBOT_SHA256_ARM64: ${RBOT_SHA256_ARM64:-098408934188bfff680563ac9ec41aab61f613c7c00b32829c45e9ec8780e9fc}
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        REPOSITORY_URL: ${REPOSITORY_URL:-}
+    restart: unless-stopped
+    environment:
+      RBOT_PORT: "9527"
+      TZ: ${TZ:-Asia/Singapore}
+    ports:
+      - "${RBOT_BIND_ADDRESS:-127.0.0.1}:${RBOT_HOST_PORT:-9527}:9527"
+    volumes:
+      - rbot-data:/var/lib/rbot
+      - ./config:/config:ro
+      - ./secrets:/run/rbot-secrets:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  rbot-data:
+    name: java-oci-manage-data
+
