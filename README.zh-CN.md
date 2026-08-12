@@ -25,6 +25,25 @@ http://服务器IP:9527
 
 默认监听所有网卡（`0.0.0.0`），便于直接测试。如无法访问，请在服务器防火墙或云安全组中放行 TCP 端口 `9527`。默认使用明文 HTTP，仅适合快速测试；超出受控网络使用前请配置可信 HTTPS。
 
+
+### 自动选择运行平台
+
+安装脚本会自动选择并保存容器平台：
+
+- x86_64 主机使用 `linux/amd64`。
+- 支持 LSE 原子指令的 ARM64 主机原生使用 `linux/arm64`。
+- 不支持 LSE 的 ARM64 主机自动使用 `linux/amd64` 兼容模式。
+
+对于不支持 LSE 的 ARM64 主机，安装器会实际启动一次 AMD64 镜像验证
+binfmt/QEMU 是否可用。若不可用，安装会停止并显示安装命令，不会擅自修改主机。
+
+选择结果保存在 `compose.platform.yaml`，同时由 `.env` 中的
+`COMPOSE_FILE` 自动加载，因此后续直接执行 `docker compose pull` 和
+`docker compose up -d` 仍会复用同一平台。需要手动覆盖时：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/scripts/install.sh | RBOT_PLATFORM=linux/arm64 sh
+```
 ## 安全模型
 
 - 使用非特权 UID/GID `10001:10001` 运行。

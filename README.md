@@ -33,6 +33,26 @@ TLS before exposing the service beyond a controlled network.
 
 ## Security model
 
+### Automatic platform selection
+
+The installer selects and saves the container platform:
+
+- x86_64 hosts use `linux/amd64`.
+- ARM64 hosts with LSE atomics use native `linux/arm64`.
+- ARM64 hosts without LSE use `linux/amd64` compatibility mode.
+
+On ARM64 hosts without LSE, the installer verifies that the selected AMD64
+image can actually start. If binfmt/QEMU is unavailable, it stops with an
+installation command instead of modifying the host automatically.
+
+The result is saved in `compose.platform.yaml`, and `.env` sets
+`COMPOSE_FILE`, so later `docker compose pull` and `docker compose up -d`
+reuse the same platform automatically. To override detection:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/scripts/install.sh | RBOT_PLATFORM=linux/arm64 sh
+```
+
 - Runs as unprivileged UID/GID `10001:10001`.
 - Drops all Linux capabilities and enables `no-new-privileges`.
 - Uses a read-only root filesystem.
