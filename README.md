@@ -23,12 +23,12 @@ curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/script
 When deployment finishes, open:
 
 ```text
-https://127.0.0.1:9527
+https://SERVER_IP:9527
 ```
 
-A self-signed certificate warning on first access is expected. If Docker runs
-on a remote server, first create an SSH tunnel with
-`ssh -L 9527:127.0.0.1:9527 USER@SERVER_IP`, then open the same address locally.
+The default configuration listens on all network interfaces (`0.0.0.0`) for
+easy testing. Allow TCP port `9527` in the server firewall or cloud security
+group if needed. A self-signed certificate warning on first access is expected.
 
 ## Security model
 
@@ -37,8 +37,8 @@ on a remote server, first create an SSH tunnel with
 - Uses a read-only root filesystem.
 - Stores mutable application state in a named volume.
 - Mounts API private keys separately and read-only.
-- Binds to localhost by default; put it behind a trusted HTTPS reverse proxy,
-  VPN, or SSH tunnel instead of exposing the management interface directly.
+- Binds to all interfaces by default for quick testing; restrict the firewall
+  and switch to localhost binding after testing whenever possible.
 - Verifies the downloaded release archive with its official SHA-256 digest.
 
 ## Publish this repository and image
@@ -156,22 +156,27 @@ the persistent volume contents.
 
 ## Network exposure
 
-The default Compose setting publishes only to the Docker host:
+The default Compose setting publishes port `9527` on every host interface:
 
 ```text
-127.0.0.1:9527 -> container:9527
+0.0.0.0:9527 -> container:9527
 ```
 
-If direct LAN/WAN exposure is an intentional and reviewed decision, set this in
-`.env`:
+This allows direct access through `https://SERVER_IP:9527` after the host
+firewall or cloud security group permits TCP port `9527`. It is intended for
+quick testing. Because this application can control cloud resources, restrict
+allowed source addresses and do not leave it openly reachable from the
+Internet.
+
+To bind only to the Docker host, set this in `.env` and recreate the container:
 
 ```dotenv
-RBOT_BIND_ADDRESS=0.0.0.0
+RBOT_BIND_ADDRESS=127.0.0.1
 ```
 
-Also restrict the host firewall to trusted source addresses. This application
-can control cloud resources and should not be left openly reachable from the
-Internet.
+```bash
+docker compose up -d --no-build --force-recreate
+```
 
 ## Upgrade and rollback
 

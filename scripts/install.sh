@@ -48,6 +48,7 @@ printf 'Starting the service...\n'
 
 
 printf '\nDeployment completed.\n'
-printf 'Open https://127.0.0.1:9527 on the Docker host.\n'
+printf 'Open https://SERVER_IP:9527 (or https://127.0.0.1:9527 on the host).\n'
+printf 'The default bind address is public; restrict the firewall or set RBOT_BIND_ADDRESS=127.0.0.1 when testing is finished.\n'
 printf 'Deployment directory: %s\n' "$(cd "${deploy_dir}" && pwd)"
 printf 'View logs: cd %s && docker compose logs --tail=200 -f rbot\n' "${deploy_dir}"
