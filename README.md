@@ -23,12 +23,13 @@ curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/script
 When deployment finishes, open:
 
 ```text
-https://SERVER_IP:9527
+http://SERVER_IP:9527
 ```
 
 The default configuration listens on all network interfaces (`0.0.0.0`) for
 easy testing. Allow TCP port `9527` in the server firewall or cloud security
-group if needed. A self-signed certificate warning on first access is expected.
+group if needed. Plain HTTP is the default for quick testing; configure trusted
+TLS before exposing the service beyond a controlled network.
 
 ## Security model
 
@@ -115,9 +116,7 @@ docker compose ps
 docker compose logs -f rbot
 ```
 
-Open `https://127.0.0.1:9527` on the Docker host. The upstream application uses
-a self-signed certificate initially, so a browser certificate warning is
-expected.
+Open `http://127.0.0.1:9527` on the Docker host.
 
 On first start, the upstream `client_config` template is copied into the
 `java-oci-manage-data` volume. The application can then initialize credentials,
@@ -162,7 +161,7 @@ The default Compose setting publishes port `9527` on every host interface:
 0.0.0.0:9527 -> container:9527
 ```
 
-This allows direct access through `https://SERVER_IP:9527` after the host
+This allows direct access through `http://SERVER_IP:9527` after the host
 firewall or cloud security group permits TCP port `9527`. It is intended for
 quick testing. Because this application can control cloud resources, restrict
 allowed source addresses and do not leave it openly reachable from the
@@ -177,6 +176,34 @@ RBOT_BIND_ADDRESS=127.0.0.1
 ```bash
 docker compose up -d --no-build --force-recreate
 ```
+
+### HTTPS
+
+For production, keep the application on HTTP and terminate HTTPS at a trusted
+reverse proxy or tunnel such as Nginx, Caddy, or Cloudflare Tunnel. Prefer
+binding the backend to localhost:
+
+```dotenv
+RBOT_BIND_ADDRESS=127.0.0.1
+RBOT_SSL_ENABLED=false
+```
+
+Configure the proxy to forward requests to `http://127.0.0.1:9527`, then
+recreate the container:
+
+```bash
+docker compose up -d --no-build --force-recreate
+```
+
+If a reverse proxy is unavailable, the application's built-in self-signed HTTPS
+can be enabled instead:
+
+```dotenv
+RBOT_SSL_ENABLED=true
+```
+
+Recreate the container and access `https://SERVER_IP:9527`. Browsers will warn
+about the self-signed certificate until it is explicitly trusted.
 
 ## Upgrade and rollback
 

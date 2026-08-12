@@ -20,10 +20,10 @@ curl -fsSL https://raw.githubusercontent.com/mrshyi/java_oci_manager/main/script
 部署完成后打开管理页面：
 
 ```text
-https://服务器IP:9527
+http://服务器IP:9527
 ```
 
-默认监听所有网卡（`0.0.0.0`），便于直接测试。如无法访问，请在服务器防火墙或云安全组中放行 TCP 端口 `9527`。首次访问出现自签名证书警告属于正常现象。
+默认监听所有网卡（`0.0.0.0`），便于直接测试。如无法访问，请在服务器防火墙或云安全组中放行 TCP 端口 `9527`。默认使用明文 HTTP，仅适合快速测试；超出受控网络使用前请配置可信 HTTPS。
 
 ## 安全模型
 
@@ -104,7 +104,7 @@ Compose 默认在主机所有网卡上发布 `9527` 端口：
 0.0.0.0:9527 -> container:9527
 ```
 
-服务器防火墙或云安全组放行 TCP 端口 `9527` 后，可通过 `https://服务器IP:9527` 直接访问。此默认值用于快速测试。该应用能够控制云资源，请限制允许访问的来源地址，不要长期对整个互联网开放。
+服务器防火墙或云安全组放行 TCP 端口 `9527` 后，可通过 `http://服务器IP:9527` 直接访问。此默认值用于快速测试。该应用能够控制云资源，请限制允许访问的来源地址，不要长期对整个互联网开放。
 
 需要改为仅允许 Docker 主机本地访问时，在 `.env` 中设置并重新创建容器：
 
@@ -115,6 +115,31 @@ RBOT_BIND_ADDRESS=127.0.0.1
 ```bash
 docker compose up -d --no-build --force-recreate
 ```
+
+### HTTPS 配置
+
+生产环境建议让应用保持 HTTP，由可信反向代理或隧道（例如 Nginx、Caddy
+或 Cloudflare Tunnel）负责 HTTPS。后端最好只监听本机：
+
+```dotenv
+RBOT_BIND_ADDRESS=127.0.0.1
+RBOT_SSL_ENABLED=false
+```
+
+将代理的上游地址设置为 `http://127.0.0.1:9527`，然后重新创建容器：
+
+```bash
+docker compose up -d --no-build --force-recreate
+```
+
+如果暂时无法配置反向代理，也可以启用应用内置的自签名 HTTPS：
+
+```dotenv
+RBOT_SSL_ENABLED=true
+```
+
+重新创建容器后通过 `https://服务器IP:9527` 访问。浏览器会提示自签名证书
+不受信任，除非手动将证书加入信任列表。
 
 ## 升级与回滚
 

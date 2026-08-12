@@ -83,6 +83,7 @@ COPY --chown=root:root --chmod=0755 docker-entrypoint.sh /usr/local/bin/docker-e
 COPY --chown=root:root --chmod=0755 healthcheck.sh /usr/local/bin/healthcheck.sh
 
 ENV RBOT_PORT=9527 \
+    RBOT_SSL_ENABLED=false \
     RBOT_DATA_DIR=/var/lib/rbot \
     HOME=/var/lib/rbot \
     TZ=Asia/Singapore

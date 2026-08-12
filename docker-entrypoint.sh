@@ -5,6 +5,7 @@ umask 077
 
 data_dir="${RBOT_DATA_DIR:-/var/lib/rbot}"
 port="${RBOT_PORT:-9527}"
+ssl_enabled="${RBOT_SSL_ENABLED:-false}"
 config_file="${data_dir}/client_config"
 bootstrap_config="/config/client_config"
 default_config="/opt/rbot/client_config.default"
@@ -20,6 +21,14 @@ if [ "${port}" -lt 1 ] || [ "${port}" -gt 65535 ]; then
   echo "RBOT_PORT must be an integer between 1 and 65535" >&2
   exit 64
 fi
+
+case "${ssl_enabled}" in
+  true|false) ;;
+  *)
+    echo "RBOT_SSL_ENABLED must be true or false" >&2
+    exit 64
+    ;;
+esac
 
 mkdir -p "${data_dir}"
 
@@ -49,5 +58,5 @@ fi
 cd "${data_dir}"
 exec /opt/rbot/r_client \
   "--server.port=${port}" \
+  "--server.ssl.enabled=${ssl_enabled}" \
   "--configPath=${config_file}"
-
