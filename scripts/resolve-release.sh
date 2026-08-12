@@ -7,8 +7,10 @@ repository="semicons/java_oci_manage"
 if [[ -n "${requested_version}" ]]; then
   requested_version="${requested_version#v}"
   api_url="https://api.github.com/repos/${repository}/releases/tags/v${requested_version}"
+  is_latest=false
 else
   api_url="https://api.github.com/repos/${repository}/releases/latest"
+  is_latest=true
 fi
 
 auth_args=()
@@ -51,6 +53,7 @@ sha256_arm64="$(asset_digest 'gz_client_bot_aarch.tar.gz')"
 printf 'version=%s\n' "${version}"
 printf 'source_tag=%s\n' "${source_tag}"
 printf 'published_at=%s\n' "${published_at}"
+printf 'is_latest=%s\n' "${is_latest}"
 printf 'sha256_amd64=%s\n' "${sha256_amd64}"
 printf 'sha256_arm64=%s\n' "${sha256_arm64}"
 

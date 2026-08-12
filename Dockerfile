@@ -9,6 +9,8 @@ ARG RBOT_VERSION=10.5.0
 ARG RBOT_SHA256_AMD64=7b7a99cdf25f73c5d07335a37da326014e52910b55e4501e997e9cade4d41bf2
 ARG RBOT_SHA256_ARM64=098408934188bfff680563ac9ec41aab61f613c7c00b32829c45e9ec8780e9fc
 
+# Resolve current Debian bookworm security packages at build time.
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
@@ -33,14 +35,15 @@ RUN set -eux; \
     curl --fail --location --retry 5 --retry-all-errors \
       --output /tmp/rbot.tar.gz \
       "https://github.com/semicons/java_oci_manage/releases/download/v${RBOT_VERSION}/${asset}"; \
-    echo "${expected_sha256}  /tmp/rbot.tar.gz" | sha256sum --check --strict; \
+    printf '%s  %s\n' "${expected_sha256}" /tmp/rbot.tar.gz > /tmp/rbot.sha256; \
+    sha256sum --check --strict /tmp/rbot.sha256; \
     tar --extract --gzip --file /tmp/rbot.tar.gz --directory /out \
       --no-same-owner --no-same-permissions; \
     test -s /out/r_client; \
     test -s /out/client_config; \
     chmod 0755 /out/r_client; \
     chmod 0640 /out/client_config; \
-    rm /tmp/rbot.tar.gz
+    rm /tmp/rbot.tar.gz /tmp/rbot.sha256
 
 FROM ${DEBIAN_IMAGE} AS runtime
 
@@ -58,6 +61,7 @@ LABEL org.opencontainers.image.title="R-Bot client" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}"
 
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
       ca-certificates \
@@ -76,6 +80,7 @@ WORKDIR /opt/rbot
 COPY --from=downloader --chown=root:root --chmod=0755 /out/r_client /opt/rbot/r_client
 COPY --from=downloader --chown=root:rbot --chmod=0640 /out/client_config /opt/rbot/client_config.default
 COPY --chown=root:root --chmod=0755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chown=root:root --chmod=0755 healthcheck.sh /usr/local/bin/healthcheck.sh
 
 ENV RBOT_PORT=9527 \
     RBOT_DATA_DIR=/var/lib/rbot \
@@ -88,8 +93,6 @@ EXPOSE 9527
 VOLUME ["/var/lib/rbot"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl --fail --silent --show-error --insecure \
-    "https://127.0.0.1:${RBOT_PORT}/radiance-bot-client/roc/api/client/health" \
-    >/dev/null || exit 1
+  CMD ["/usr/local/bin/healthcheck.sh"]
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

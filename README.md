@@ -1,6 +1,9 @@
-# java_oci_manage Docker image
+# java_oci_manager
 
-This directory builds a self-owned, multi-architecture image for the native
+[![CI](https://github.com/mrshyi/java_oci_manager/actions/workflows/ci.yml/badge.svg)](https://github.com/mrshyi/java_oci_manager/actions/workflows/ci.yml)
+[![Publish image](https://github.com/mrshyi/java_oci_manager/actions/workflows/publish.yml/badge.svg)](https://github.com/mrshyi/java_oci_manager/actions/workflows/publish.yml)
+
+This repository builds a self-owned, multi-architecture image for the native
 R-Bot client distributed by `semicons/java_oci_manage`.
 
 The application version and official SHA-256 checksums are pinned at build
@@ -15,8 +18,10 @@ process; the upstream background-service script is intentionally not used.
 - Stores mutable application state in a named volume.
 - Mounts API private keys separately and read-only.
 - Binds to localhost by default; put it behind a trusted HTTPS reverse proxy,
+  VPN, or SSH tunnel instead of exposing the management interface directly.
+- Verifies the downloaded release archive with its official SHA-256 digest.
 
-## Publish your own repository and image
+## Publish this repository and image
 
 This repository follows the operating model of
 `vay1314/java_oci_manage_docker`, while pinning upstream checksums and running
@@ -26,10 +31,7 @@ Create an empty GitHub repository named `java_oci_manager`, then push this
 working tree:
 
 ```bash
-git branch -M main
-git add .
-git commit -m "Initial secure multi-arch image"
-git remote add origin https://github.com/YOUR_GITHUB_USER/java_oci_manager.git
+git remote add origin https://github.com/mrshyi/java_oci_manager.git
 git push -u origin main
 ```
 
@@ -47,7 +49,7 @@ the package public in **GitHub profile -> Packages -> Package settings ->
 Change visibility** if anonymous pulls are desired.
 
 ```bash
-docker pull ghcr.io/YOUR_GITHUB_USER/java_oci_manager:latest
+docker pull ghcr.io/mrshyi/java_oci_manager:latest
 ```
 
 To publish to Docker Hub too, create the Docker Hub repository and configure:
@@ -60,7 +62,7 @@ If these settings are absent, Docker Hub is skipped and GHCR continues
 normally. To deploy the published image, set this in `.env`:
 
 ```dotenv
-RBOT_IMAGE=ghcr.io/YOUR_GITHUB_USER/java_oci_manager:10.5.0
+RBOT_IMAGE=ghcr.io/mrshyi/java_oci_manager:10.5.0
 ```
 
 Then start without rebuilding:
@@ -72,8 +74,12 @@ docker compose up -d --no-build
 
 Workflow actions are pinned to exact commit SHAs. Dependabot checks weekly for
 newer Docker and GitHub Actions dependencies.
-  VPN, or SSH tunnel instead of exposing the management interface directly.
-- Verifies the downloaded release archive with its official SHA-256 digest.
+
+Scheduled and empty-version manual runs update both the immutable version tag
+and `latest`. A manual run for a historical version publishes only its immutable
+version tag, so it cannot roll `latest` backward. When Docker Hub publishing is
+enabled later, the workflow also backfills a version that already exists in
+GHCR.
 
 ## Build and start
 

@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       force:
-        description: Rebuild even when the version tag already exists in GHCR
+        description: Rebuild even when the version tag exists in all target registries
         required: false
         default: false
         type: boolean
@@ -40,6 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           scripts/resolve-release.sh "${REQUESTED_VERSION}" >> "${GITHUB_OUTPUT}"
+
       - name: Detect optional Docker Hub publishing
         id: dockerhub
         env:
@@ -53,26 +54,34 @@ jobs:
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
           fi
 
-
       - name: Set image names and tags
         id: image
         env:
           VERSION: ${{ steps.release.outputs.version }}
+          IS_LATEST: ${{ steps.release.outputs.is_latest }}
           DOCKERHUB_ENABLED: ${{ steps.dockerhub.outputs.enabled }}
           DOCKERHUB_USERNAME: ${{ steps.dockerhub.outputs.username }}
         run: |
           set -euo pipefail
           ghcr_image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          dockerhub_image=""
+          if [[ "${DOCKERHUB_ENABLED}" == "true" ]]; then
+            dockerhub_repo="${GITHUB_REPOSITORY#*/}"
+            dockerhub_image="docker.io/${DOCKERHUB_USERNAME,,}/${dockerhub_repo,,}"
+          fi
           {
             echo "ghcr=${ghcr_image}"
+            echo "dockerhub=${dockerhub_image}"
             echo "tags<<EOF"
             echo "${ghcr_image}:${VERSION}"
-            echo "${ghcr_image}:latest"
+            if [[ "${IS_LATEST}" == "true" ]]; then
+              echo "${ghcr_image}:latest"
+            fi
             if [[ "${DOCKERHUB_ENABLED}" == "true" ]]; then
-              dockerhub_repo="${GITHUB_REPOSITORY#*/}"
-              dockerhub_image="docker.io/${DOCKERHUB_USERNAME,,}/${dockerhub_repo,,}"
               echo "${dockerhub_image}:${VERSION}"
-              echo "${dockerhub_image}:latest"
+              if [[ "${IS_LATEST}" == "true" ]]; then
+                echo "${dockerhub_image}:latest"
+              fi
             fi
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
@@ -103,16 +112,21 @@ jobs:
         env:
           FORCE: ${{ inputs.force }}
           GHCR_IMAGE: ${{ steps.image.outputs.ghcr }}
+          DOCKERHUB_ENABLED: ${{ steps.dockerhub.outputs.enabled }}
+          DOCKERHUB_IMAGE: ${{ steps.image.outputs.dockerhub }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
           if [[ "${FORCE:-false}" == "true" ]]; then
             echo "build=true" >> "${GITHUB_OUTPUT}"
-          elif docker buildx imagetools inspect "${GHCR_IMAGE}:${VERSION}" >/dev/null 2>&1; then
-            echo "build=false" >> "${GITHUB_OUTPUT}"
-            echo "Image ${GHCR_IMAGE}:${VERSION} already exists; skipping."
-          else
+          elif ! docker buildx imagetools inspect "${GHCR_IMAGE}:${VERSION}" >/dev/null 2>&1; then
             echo "build=true" >> "${GITHUB_OUTPUT}"
+          elif [[ "${DOCKERHUB_ENABLED}" == "true" ]] \
+            && ! docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${VERSION}" >/dev/null 2>&1; then
+            echo "build=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "build=false" >> "${GITHUB_OUTPUT}"
+            echo "Version ${VERSION} exists in every configured registry; skipping."
           fi
 
       - name: Build and push multi-architecture image
@@ -139,6 +153,7 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
           SOURCE_TAG: ${{ steps.release.outputs.source_tag }}
+          IS_LATEST: ${{ steps.release.outputs.is_latest }}
           BUILD: ${{ steps.existing.outputs.build }}
           TAGS: ${{ steps.image.outputs.tags }}
         run: |
@@ -147,6 +162,7 @@ jobs:
             echo
             echo "- Upstream release: \`${SOURCE_TAG}\`"
             echo "- Version: \`${VERSION}\`"
+            echo "- Updates latest tag: \`${IS_LATEST}\`"
             echo "- Built in this run: \`${BUILD}\`"
             echo "- Tags:"
             while IFS= read -r tag; do echo "  - \`${tag}\`"; done <<< "${TAGS}"
