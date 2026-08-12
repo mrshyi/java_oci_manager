@@ -16,6 +16,7 @@ services:
     environment:
       RBOT_PORT: "9527"
       TZ: ${TZ:-Asia/Singapore}
+      RBOT_SSL_ENABLED: "${RBOT_SSL_ENABLED:-false}"
     ports:
       - "${RBOT_BIND_ADDRESS:-0.0.0.0}:${RBOT_HOST_PORT:-9527}:9527"
     volumes:

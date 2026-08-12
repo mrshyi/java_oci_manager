@@ -24,6 +24,7 @@ jobs:
           shellcheck \
             docker-entrypoint.sh \
             scripts/resolve-release.sh \
+            healthcheck.sh \
             scripts/install.sh
 
       - name: Validate Compose configuration
