@@ -26,7 +26,8 @@ jobs:
             scripts/resolve-release.sh \
             healthcheck.sh \
             scripts/install.sh \
-            scripts/select-platform.sh
+            scripts/select-platform.sh \
+            scripts/show-bindclient.sh
 
       - name: Test platform selection
         run: |
@@ -36,6 +37,28 @@ jobs:
           printf 'Features : fp asimd\n' > /tmp/cpuinfo-no-lse
           test "$(RBOT_MACHINE=arm64 RBOT_CPUINFO=/tmp/cpuinfo-no-lse sh scripts/select-platform.sh | sed -n 's/^platform=//p')" = linux/amd64
           test "$(RBOT_PLATFORM=linux/arm64 RBOT_MACHINE=x86_64 sh scripts/select-platform.sh | sed -n 's/^platform=//p')" = linux/arm64
+
+      - name: Test binding command output
+        run: |
+          mkdir -p /tmp/rbot-test-bin
+          cat > /tmp/rbot-test-bin/docker <<'EOF'
+          #!/bin/sh
+          set -eu
+          [ "$1" = compose ]
+          [ "$2" = exec ]
+          [ "$3" = -T ]
+          shift 4
+          exec "$@"
+          EOF
+          chmod +x /tmp/rbot-test-bin/docker
+          printf 'username=test-user\npassword=test-password\n' > /tmp/client_config
+          output="$(PATH="/tmp/rbot-test-bin:$PATH" RBOT_CONFIG=/tmp/client_config sh scripts/show-bindclient.sh)"
+          test "$output" = '/bindclient test-user test-password'
+          printf 'username=test-user\npassword=\n' > /tmp/client_config
+          if PATH="/tmp/rbot-test-bin:$PATH" RBOT_CONFIG=/tmp/client_config sh scripts/show-bindclient.sh; then
+            echo 'Expected empty password to fail' >&2
+            exit 1
+          fi
 
       - name: Validate Compose configuration
         run: docker compose config --quiet

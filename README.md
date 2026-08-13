@@ -33,6 +33,17 @@ TLS before exposing the service beyond a controlled network.
 
 ## Security model
 
+After the first start, the installer waits for the generated client credentials
+and prints the Telegram binding command:
+
+```text
+/bindclient USERNAME PASSWORD
+```
+
+This command contains sensitive credentials; do not publish or share it. To
+display it again later, run `cd java_oci_manager && sh
+scripts/show-bindclient.sh`.
+
 ### Automatic platform selection
 
 The installer selects and saves the container platform:
