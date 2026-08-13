@@ -72,6 +72,26 @@ printf 'Starting the service...\n'
   cd "${deploy_dir}"
   docker compose up -d --no-build
   docker compose ps
+  printf 'Waiting for the client binding credentials...\n'
+  bindclient=""
+  attempt=1
+  while [ "${attempt}" -le 24 ]; do
+    if bindclient="$(sh scripts/show-bindclient.sh 2>/dev/null)"; then
+      break
+    fi
+    bindclient=""
+    sleep 5
+    attempt=$((attempt + 1))
+  done
+
+  if [ -n "${bindclient}" ]; then
+    printf '\nTelegram client binding command (sensitive; do not share):\n'
+    printf '%s\n' "${bindclient}"
+  else
+    printf '\nBinding credentials are not ready yet. Check later with:\n'
+    printf 'cd %s && sh scripts/show-bindclient.sh\n' "${deploy_dir}"
+  fi
+
 )
 
 
